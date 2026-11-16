@@ -1,0 +1,8 @@
+{
+  "name": "AURA | Futuristic Luxury Real Estate Marketplace",
+  "description": "Discover extraordinary luxury villas, penthouses, and architectural estates. Complete with advanced property search, customer CRM, site visit booking, and admin property management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
