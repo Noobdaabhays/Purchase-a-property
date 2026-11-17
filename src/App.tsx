@@ -8,6 +8,7 @@ import { PropertyDetailModal } from './components/PropertyDetailModal.tsx';
 import { ComparisonView } from './components/ComparisonView.tsx';
 import { CustomerDashboard } from './components/CustomerDashboard.tsx';
 import { AdminDashboard } from './components/AdminDashboard.tsx';
+import { AdminLogin } from './components/AdminLogin.tsx';
 import { AgentDashboard } from './components/AgentDashboard.tsx';
 import { FinancialCalculators } from './components/FinancialCalculators.tsx';
 import { HomeSections } from './components/HomeSections.tsx';
@@ -40,6 +41,37 @@ function AppContent() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Synchronize browser URL paths (/admin/login, /admin/dashboard, etc.)
+  useEffect(() => {
+    const handleUrlRoute = () => {
+      if (typeof window === 'undefined') return;
+      const path = window.location.pathname.toLowerCase();
+      if (path === '/admin/login') {
+        setActiveView('admin_login');
+      } else if (path === '/admin' || path === '/admin/dashboard') {
+        if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
+          setActiveView('admin_dash');
+        } else {
+          setActiveView('admin_login');
+        }
+      } else if (path === '/search') {
+        setActiveView('search');
+      } else if (path === '/compare') {
+        setActiveView('compare');
+      } else if (path === '/customer' || path === '/dashboard') {
+        setActiveView('customer_dash');
+      } else if (path === '/agent') {
+        setActiveView('agent_dash');
+      } else if (path === '/calculators') {
+        setActiveView('calculators');
+      }
+    };
+
+    handleUrlRoute();
+    window.addEventListener('popstate', handleUrlRoute);
+    return () => window.removeEventListener('popstate', handleUrlRoute);
+  }, [currentUser.role, setActiveView]);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -189,7 +221,23 @@ function AppContent() {
 
         {activeView === 'customer_dash' && <CustomerDashboard />}
 
-        {activeView === 'admin_dash' && <AdminDashboard />}
+        {activeView === 'admin_login' && (
+          <AdminLogin
+            onSuccess={() => setActiveView('admin_dash')}
+            onBackToHome={() => setActiveView('home')}
+          />
+        )}
+
+        {activeView === 'admin_dash' && (
+          currentUser.role === 'admin' || currentUser.role === 'super_admin' ? (
+            <AdminDashboard />
+          ) : (
+            <AdminLogin
+              onSuccess={() => setActiveView('admin_dash')}
+              onBackToHome={() => setActiveView('home')}
+            />
+          )
+        )}
 
         {activeView === 'agent_dash' && <AgentDashboard />}
 

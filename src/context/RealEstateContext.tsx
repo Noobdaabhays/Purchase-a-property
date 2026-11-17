@@ -18,7 +18,13 @@ import {
   INITIAL_NOTIFICATIONS
 } from '../data/initialData.ts';
 import { filterProperties, checkSiteVisitConflict } from '../utils/realEstateCalculators.ts';
-import { supabase, isSupabaseConfigured } from '../utils/supabase.ts';
+import {
+  supabase,
+  isSupabaseConfigured,
+  fetchPropertiesFromSupabase,
+  savePropertyToSupabase,
+  deletePropertyFromSupabase
+} from '../utils/supabase.ts';
 
 export interface ToastMessage {
   id: string;
@@ -26,6 +32,8 @@ export interface ToastMessage {
   title: string;
   message?: string;
 }
+
+export type ActiveView = 'home' | 'search' | 'details' | 'compare' | 'customer_dash' | 'admin_dash' | 'agent_dash' | 'calculators' | 'admin_login';
 
 interface RealEstateContextType {
   // Theme
@@ -51,8 +59,8 @@ interface RealEstateContextType {
   filteredProperties: Property[];
   selectedProperty: Property | null;
   setSelectedProperty: (prop: Property | null) => void;
-  activeView: 'home' | 'search' | 'details' | 'compare' | 'customer_dash' | 'admin_dash' | 'agent_dash' | 'calculators';
-  setActiveView: (view: 'home' | 'search' | 'details' | 'compare' | 'customer_dash' | 'admin_dash' | 'agent_dash' | 'calculators') => void;
+  activeView: ActiveView;
+  setActiveView: (view: ActiveView) => void;
 
   // Wishlist
   wishlistIds: string[];
@@ -301,8 +309,20 @@ export function RealEstateProvider({ children }: { children: ReactNode }) {
   }, [properties]);
 
   // Active View and Selected Property
-  const [activeView, setActiveView] = useState<'home' | 'search' | 'details' | 'compare' | 'customer_dash' | 'admin_dash' | 'agent_dash' | 'calculators'>('home');
+  const [activeView, setActiveView] = useState<ActiveView>('home');
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(INITIAL_PROPERTIES[0]);
+
+  // Sync live properties from Supabase on mount
+  useEffect(() => {
+    fetchPropertiesFromSupabase().then((res) => {
+      if (res.properties && res.properties.length > 0) {
+        setProperties(res.properties);
+        console.info(`[AURA Real Estate]: Synced ${res.properties.length} live listings from Supabase.`);
+      }
+    }).catch((err) => {
+      console.warn('Notice: Using local store (Supabase properties table pending):', err);
+    });
+  }, []);
 
   // Filters State
   const [filters, setFilters] = useState<PropertyFilters>({
@@ -661,6 +681,9 @@ export function RealEstateProvider({ children }: { children: ReactNode }) {
       ]
     };
     setProperties((prev) => [newProp, ...prev]);
+    savePropertyToSupabase(newProp).catch((err) => {
+      console.warn('Notice: Supabase write notice:', err);
+    });
     addToast('success', 'Property Published', `"${newProp.title}" is now active on the marketplace.`);
   };
 
@@ -679,6 +702,9 @@ export function RealEstateProvider({ children }: { children: ReactNode }) {
               }
             ];
           }
+          savePropertyToSupabase(updated).catch((err) => {
+            console.warn('Notice: Supabase update notice:', err);
+          });
           return updated;
         }
         return p;
@@ -689,6 +715,9 @@ export function RealEstateProvider({ children }: { children: ReactNode }) {
 
   const deleteProperty = (propertyId: string) => {
     setProperties((prev) => prev.filter((p) => p.id !== propertyId));
+    deletePropertyFromSupabase(propertyId).catch((err) => {
+      console.warn('Notice: Supabase delete notice:', err);
+    });
     addToast('info', 'Property Removed from Database');
   };
 

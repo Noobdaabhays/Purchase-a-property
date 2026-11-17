@@ -314,8 +314,13 @@ export function Navigation() {
 
                     <button
                       onClick={() => {
-                        switchUserRole('admin');
-                        setActiveView('admin_dash');
+                        if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
+                          if (typeof window !== 'undefined') window.history.pushState({}, '', '/admin/dashboard');
+                          setActiveView('admin_dash');
+                        } else {
+                          if (typeof window !== 'undefined') window.history.pushState({}, '', '/admin/login');
+                          setActiveView('admin_login');
+                        }
                         setIsUserMenuOpen(false);
                       }}
                       className={`w-full text-left px-3 py-1.5 text-xs rounded-lg flex items-center justify-between transition-colors ${
@@ -325,7 +330,7 @@ export function Navigation() {
                       }`}
                     >
                       <span className="flex items-center gap-2">
-                        <Shield className="w-3.5 h-3.5" /> Admin Dashboard
+                        <Shield className="w-3.5 h-3.5" /> {currentUser.role === 'admin' ? 'Admin Dashboard' : 'Admin Login (/admin/login)'}
                       </span>
                       {currentUser.role === 'admin' && <span className="text-[10px]">Active</span>}
                     </button>
