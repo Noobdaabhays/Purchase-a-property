@@ -16,7 +16,8 @@ import {
   ChevronDown,
   Menu,
   X,
-  LogOut
+  LogOut,
+  Download
 } from 'lucide-react';
 import { UserRole } from '../types/index.ts';
 
@@ -230,6 +231,17 @@ export function Navigation() {
             >
               {isDarkMode ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-slate-700" />}
             </button>
+
+            {/* Direct InfinityFree ZIP Download Button */}
+            <a
+              href="/purchase-a-property-deployment.zip"
+              download="purchase-a-property-deployment.zip"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-transform active:scale-95"
+              title="Download InfinityFree Deployment ZIP Archive (5.1MB)"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download ZIP</span>
+            </a>
 
             {/* User Profile & Role Switcher Dropdown */}
             <div className="relative">

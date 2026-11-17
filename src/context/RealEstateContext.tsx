@@ -18,6 +18,7 @@ import {
   INITIAL_NOTIFICATIONS
 } from '../data/initialData.ts';
 import { filterProperties, checkSiteVisitConflict } from '../utils/realEstateCalculators.ts';
+import { supabase, isSupabaseConfigured } from '../utils/supabase.ts';
 
 export interface ToastMessage {
   id: string;
@@ -38,7 +39,7 @@ interface RealEstateContextType {
   openAuthModal: (mode?: 'login' | 'register') => void;
   closeAuthModal: () => void;
   authMode: 'login' | 'register';
-  loginUser: (email: string, role?: UserRole) => void;
+  loginUser: (email: string, role?: UserRole, password?: string) => void;
   logoutUser: () => void;
 
   // Properties & Search
@@ -151,7 +152,45 @@ export function RealEstateProvider({ children }: { children: ReactNode }) {
   };
   const closeAuthModal = () => setIsAuthModalOpen(false);
 
-  const loginUser = (email: string, role: UserRole = 'customer') => {
+  const loginUser = async (email: string, role: UserRole = 'customer', password?: string) => {
+    // If Supabase is configured and a valid password was entered, authenticate against Supabase
+    if (isSupabaseConfigured && supabase && password && password !== '••••••••••' && password.length >= 6) {
+      try {
+        const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (signInError) {
+          // If user does not exist in Supabase auth yet, attempt auto-registration
+          if (signInError.message.toLowerCase().includes('invalid login credentials')) {
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                data: {
+                  role,
+                  name: email.split('@')[0].replace('.', ' ')
+                }
+              }
+            });
+
+            if (signUpError) {
+              console.warn('[Supabase Auth Notice]:', signUpError.message);
+            } else if (signUpData?.user) {
+              addToast('info', 'Supabase Account Registered', `Welcome ${email}`);
+            }
+          } else {
+            console.warn('[Supabase Auth Notice]:', signInError.message);
+          }
+        } else if (authData?.user) {
+          addToast('success', 'Supabase Connected', `Session verified for ${email}`);
+        }
+      } catch (err) {
+        console.warn('[Supabase Auth Exception]:', err);
+      }
+    }
+
     const matched = DEMO_USERS.find((u) => u.email.toLowerCase() === email.toLowerCase());
     const userToSet: User = matched || {
       id: `user-${Date.now()}`,
@@ -168,6 +207,11 @@ export function RealEstateProvider({ children }: { children: ReactNode }) {
   };
 
   const logoutUser = () => {
+    if (isSupabaseConfigured && supabase) {
+      supabase.auth.signOut().catch((err) => {
+        console.warn('[Supabase SignOut Notice]:', err);
+      });
+    }
     const guest: User = {
       id: 'guest',
       name: 'Guest Explorer',
@@ -180,6 +224,48 @@ export function RealEstateProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('aura_user');
     addToast('info', 'Logged out successfully');
   };
+
+  // Synchronize with Supabase Auth state and cloud properties on mount
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+
+    // Check active session in Supabase
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const userMeta = session.user.user_metadata || {};
+        const activeRole = (userMeta.role as UserRole) || 'customer';
+        setCurrentUser((prev) => ({
+          ...prev,
+          id: session.user.id,
+          name: userMeta.name || session.user.email?.split('@')[0] || prev.name,
+          email: session.user.email || prev.email,
+          role: activeRole,
+          createdAt: session.user.created_at
+        }));
+      }
+    }).catch((err) => {
+      console.warn('[Supabase Session Check]:', err);
+    });
+
+    // Listen to live Supabase auth state transitions
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const userMeta = session.user.user_metadata || {};
+        const activeRole = (userMeta.role as UserRole) || 'customer';
+        setCurrentUser((prev) => ({
+          ...prev,
+          id: session.user.id,
+          name: userMeta.name || session.user.email?.split('@')[0] || prev.name,
+          email: session.user.email || prev.email,
+          role: activeRole
+        }));
+      }
+    });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, []);
 
   const switchUserRole = (role: UserRole) => {
     const demoForRole = DEMO_USERS.find((u) => u.role === role);

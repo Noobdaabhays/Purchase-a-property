@@ -1,4 +1,5 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
+import type { Request, Response } from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -62,6 +63,17 @@ async function startServer() {
   // Health check endpoint
   app.get('/api/health', (_req: Request, res: Response) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // Dedicated deployment ZIP download endpoint with Content-Disposition attachment
+  app.get(['/download-zip', '/download', '/api/download-deployment-zip'], (_req: Request, res: Response) => {
+    const zipPath = path.resolve(__dirname, 'public', 'purchase-a-property-deployment.zip');
+    if (fs.existsSync(zipPath)) {
+      res.setHeader('Content-Type', 'application/zip');
+      res.download(zipPath, 'purchase-a-property-deployment.zip');
+    } else {
+      res.status(404).json({ error: 'ZIP file not found' });
+    }
   });
 
   // Properties API

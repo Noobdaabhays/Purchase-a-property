@@ -234,6 +234,14 @@ export function AdminDashboard() {
         </div>
 
         <div className="flex items-center gap-3">
+          <a
+            href="/purchase-a-property-deployment.zip"
+            download="purchase-a-property-deployment.zip"
+            className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+            title="Download complete static InfinityFree build (5.1MB)"
+          >
+            <Download className="w-3.5 h-3.5" /> Download Deployment ZIP
+          </a>
           <button
             onClick={handleExportCSV}
             className="px-4 py-2 rounded-full border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-1.5 transition-colors"

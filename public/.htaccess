@@ -1,0 +1,40 @@
+# ----------------------------------------------------------------------
+# Apache configuration for React Single Page Application on InfinityFree
+# ----------------------------------------------------------------------
+
+# Enable Rewrite Engine
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Do not rewrite actual files or directories
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Route all other URLs (e.g., /admin/dashboard, /properties) to index.html
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Prevent directory indexing
+Options -Indexes
+
+# MIME types and caching headers for static assets
+<IfModule mod_headers.c>
+  # 1 Year Cache for hashed assets
+  <FilesMatch "\.(js|css|webp|jpg|jpeg|png|gif|svg|woff|woff2|ttf|eot|ico)$">
+    Header set Cache-Control "max-age=31536000, public"
+  </FilesMatch>
+
+  # No cache for HTML so app updates reflect immediately
+  <FilesMatch "\.(html)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires 0
+  </FilesMatch>
+</IfModule>
+
+# Enable Gzip compression if supported
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/json image/svg+xml
+</IfModule>

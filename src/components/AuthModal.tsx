@@ -35,7 +35,7 @@ export function AuthModal() {
       setMode('otp');
       return;
     }
-    loginUser(email, selectedRole);
+    loginUser(email, selectedRole, password);
   };
 
   const handleQuickDemo = (role: UserRole, demoEmail: string) => {
