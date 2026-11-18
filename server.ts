@@ -6,6 +6,13 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
+import {
+  INITIAL_PROPERTIES,
+  INITIAL_SITE_VISITS,
+  INITIAL_ENQUIRIES,
+  INITIAL_LEADS,
+  INITIAL_NOTIFICATIONS
+} from './src/data/initialData.ts';
 
 dotenv.config();
 
@@ -32,18 +39,23 @@ function loadDatabase(): ServerState {
   if (fs.existsSync(DB_FILE)) {
     try {
       const content = fs.readFileSync(DB_FILE, 'utf-8');
-      return JSON.parse(content);
+      const parsed = JSON.parse(content);
+      if (parsed.properties && parsed.properties.length > 0) {
+        return parsed;
+      }
     } catch (e) {
       console.error('Failed to parse db.json, initializing fresh store:', e);
     }
   }
-  return {
-    properties: [],
-    siteVisits: [],
-    enquiries: [],
-    leads: [],
-    notifications: []
+  const defaultState: ServerState = {
+    properties: INITIAL_PROPERTIES,
+    siteVisits: INITIAL_SITE_VISITS,
+    enquiries: INITIAL_ENQUIRIES,
+    leads: INITIAL_LEADS,
+    notifications: INITIAL_NOTIFICATIONS
   };
+  saveDatabase(defaultState);
+  return defaultState;
 }
 
 function saveDatabase(state: ServerState) {
